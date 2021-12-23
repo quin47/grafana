@@ -11,6 +11,7 @@ windows_image = 'mcr.microsoft.com/windows:1809'
 wix_image = 'grafana/ci-wix:0.1.1'
 test_release_ver = 'v7.3.0-test'
 
+disable_tests = True
 
 def slack_step(channel, template, secret):
     return {
@@ -22,7 +23,6 @@ def slack_step(channel, template, secret):
             'template': template,
         },
     }
-
 
 def initialize_step(edition, platform, ver_mode, is_downstream=False, install_deps=True):
     if platform == 'windows':
@@ -277,13 +277,7 @@ def store_storybook_step(edition, ver_mode):
     return {
         'name': 'store-storybook',
         'image': publish_image,
-        'depends_on': [
-            'build-storybook',
-            'end-to-end-tests-dashboards-suite',
-            'end-to-end-tests-panels-suite',
-            'end-to-end-tests-smoke-tests-suite',
-            'end-to-end-tests-various-suite',
-        ],
+        'depends_on': ['build-storybook',] + end_to_end_tests_deps(edition),
         'environment': {
             'GCP_KEY': from_secret('gcp_key'),
             'PRERELEASE_BUCKET': from_secret(prerelease_bucket)
@@ -674,6 +668,7 @@ def e2e_tests_server_step(edition, port=3001):
         ],
     }
 
+
 def install_cypress_step():
     return {
         'name': 'cypress',
@@ -711,7 +706,6 @@ def e2e_tests_step(suite, edition, port=3001, tries=None):
             cmd,
         ],
     }
-
 
 def build_docs_website_step():
     return {
@@ -774,6 +768,7 @@ def package_docker_images_step(edition, ver_mode, archs=None, ubuntu=False, publ
         },
     }
 
+
 def build_docker_images_step(edition, ver_mode, archs=None, ubuntu=False, publish=False):
     if ver_mode == 'test-release':
         publish = False
@@ -799,7 +794,6 @@ def build_docker_images_step(edition, ver_mode, archs=None, ubuntu=False, publis
         'depends_on': ['copy-packages-for-docker'],
         'settings': settings,
     }
-
 
 def postgres_integration_tests_step(edition, ver_mode):
     deps = []
@@ -902,12 +896,7 @@ def release_canary_npm_packages_step(edition):
     return {
         'name': 'release-canary-npm-packages',
         'image': build_image,
-        'depends_on': [
-            'end-to-end-tests-dashboards-suite',
-            'end-to-end-tests-panels-suite',
-            'end-to-end-tests-smoke-tests-suite',
-            'end-to-end-tests-various-suite',
-        ],
+        'depends_on': end_to_end_tests_deps(edition),
         'environment': {
             'NPM_TOKEN': from_secret('npm_token'),
         },
@@ -939,17 +928,12 @@ def upload_packages_step(edition, ver_mode, is_downstream=False):
         cmd = './bin/grabpl upload-packages --edition {} --packages-bucket grafana-downloads'.format(edition)
 
     deps = []
-    if edition in 'enterprise2':
+    if edition in 'enterprise2' or not end_to_end_tests_deps(edition):
         deps.extend([
             'package' + enterprise2_suffix(edition),
             ])
     else:
-        deps.extend([
-            'end-to-end-tests-dashboards-suite' + enterprise2_suffix(edition),
-            'end-to-end-tests-panels-suite' + enterprise2_suffix(edition),
-            'end-to-end-tests-smoke-tests-suite' + enterprise2_suffix(edition),
-            'end-to-end-tests-various-suite' + enterprise2_suffix(edition),
-            ])
+        deps.extend(end_to_end_tests_deps(edition))
 
     return {
         'name': 'upload-packages' + enterprise2_suffix(edition),
@@ -1168,3 +1152,13 @@ def ensure_cuetsified_step():
             'git stash pop',
         ],
     }
+
+def end_to_end_tests_deps(edition):
+    if disable_tests:
+        return []
+    return [
+        'end-to-end-tests-dashboards-suite' + enterprise2_suffix(edition),
+        'end-to-end-tests-panels-suite' + enterprise2_suffix(edition),
+        'end-to-end-tests-smoke-tests-suite' + enterprise2_suffix(edition),
+        'end-to-end-tests-various-suite' + enterprise2_suffix(edition),
+    ]
