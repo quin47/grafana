@@ -1093,106 +1093,6 @@ type: docker
 ---
 depends_on: []
 kind: pipeline
-name: oss-test-release
-node:
-  type: no-parallel
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - mkdir -p bin
-  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
-  - chmod +x bin/grabpl
-  image: byrnedo/alpine-curl:0.1.8
-  name: grabpl
-- commands:
-  - echo $DRONE_RUNNER_NAME
-  image: alpine:3.14.3
-  name: identify-runner
-- commands:
-  - make gen-go
-  - ./bin/grabpl verify-version ${DRONE_TAG}
-  - ./bin/grabpl gen-version ${DRONE_TAG}
-  - yarn install --immutable
-  image: grafana/build-container:1.4.8
-  name: initialize
-- commands:
-  - |-
-    echo -e "unknwon
-    referer
-    errorstring
-    eror
-    iam
-    wan" > words_to_ignore.txt
-  - codespell -I words_to_ignore.txt docs/
-  - rm words_to_ignore.txt
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: codespell
-- commands:
-  - ./bin/grabpl shellcheck
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: shellcheck
-- commands:
-  - ./bin/grabpl lint-backend --edition oss
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend
-- commands:
-  - yarn run prettier:check
-  - yarn run lint
-  - yarn run i18n:compile
-  - yarn run typecheck
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: lint-frontend
-- commands:
-  - ./bin/grabpl test-backend --edition oss
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend
-- commands:
-  - ./bin/grabpl integration-tests --edition oss
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration
-- commands:
-  - yarn run ci:test-frontend
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: test-frontend
-trigger:
-  ref:
-  - refs/tags/v*
-  repo:
-    exclude:
-    - grafana/grafana
-type: docker
-volumes:
-- name: cypress_cache
-  temp: {}
-- host:
-    path: /var/run/docker.sock
-  name: docker
----
-depends_on: []
-kind: pipeline
 name: oss-build-e2e-publish-release
 node:
   type: no-parallel
@@ -1481,6 +1381,106 @@ volumes:
 ---
 depends_on: []
 kind: pipeline
+name: oss-test-release
+node:
+  type: no-parallel
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - mkdir -p bin
+  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
+  - chmod +x bin/grabpl
+  image: byrnedo/alpine-curl:0.1.8
+  name: grabpl
+- commands:
+  - echo $DRONE_RUNNER_NAME
+  image: alpine:3.14.3
+  name: identify-runner
+- commands:
+  - make gen-go
+  - ./bin/grabpl verify-version ${DRONE_TAG}
+  - ./bin/grabpl gen-version ${DRONE_TAG}
+  - yarn install --immutable
+  image: grafana/build-container:1.4.8
+  name: initialize
+- commands:
+  - |-
+    echo -e "unknwon
+    referer
+    errorstring
+    eror
+    iam
+    wan" > words_to_ignore.txt
+  - codespell -I words_to_ignore.txt docs/
+  - rm words_to_ignore.txt
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: codespell
+- commands:
+  - ./bin/grabpl shellcheck
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: shellcheck
+- commands:
+  - ./bin/grabpl lint-backend --edition oss
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend
+- commands:
+  - yarn run prettier:check
+  - yarn run lint
+  - yarn run i18n:compile
+  - yarn run typecheck
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: lint-frontend
+- commands:
+  - ./bin/grabpl test-backend --edition oss
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend
+- commands:
+  - ./bin/grabpl integration-tests --edition oss
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration
+- commands:
+  - yarn run ci:test-frontend
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: test-frontend
+trigger:
+  ref:
+  - refs/tags/v*
+  repo:
+    exclude:
+    - grafana/grafana
+type: docker
+volumes:
+- name: cypress_cache
+  temp: {}
+- host:
+    path: /var/run/docker.sock
+  name: docker
+---
+depends_on: []
+kind: pipeline
 name: oss-integration-tests-release
 node:
   type: no-parallel
@@ -1577,8 +1577,8 @@ volumes:
     medium: memory
 ---
 depends_on:
-- oss-test-release
 - oss-build-e2e-publish-release
+- oss-test-release
 - oss-integration-tests-release
 kind: pipeline
 name: oss-windows-release
@@ -1621,152 +1621,6 @@ steps:
       from_secret: prerelease_bucket
   image: grafana/ci-wix:0.1.1
   name: build-windows-installer
-trigger:
-  ref:
-  - refs/tags/v*
-  repo:
-    exclude:
-    - grafana/grafana
-type: docker
-volumes:
-- name: cypress_cache
-  temp: {}
-- host:
-    path: /var/run/docker.sock
-  name: docker
----
-clone:
-  disable: true
-depends_on: []
-image_pull_secrets:
-- dockerconfigjson
-kind: pipeline
-name: enterprise-test-release
-node:
-  type: no-parallel
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - mkdir -p bin
-  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
-  - chmod +x bin/grabpl
-  image: byrnedo/alpine-curl:0.1.8
-  name: grabpl
-- commands:
-  - echo $DRONE_RUNNER_NAME
-  image: alpine:3.14.3
-  name: identify-runner
-- commands:
-  - git clone "https://$${GITHUB_TOKEN}@github.com/grafana/grafana-enterprise.git"
-  - cd grafana-enterprise
-  - git checkout ${DRONE_TAG}
-  environment:
-    GITHUB_TOKEN:
-      from_secret: github_token
-  image: grafana/build-container:1.4.8
-  name: clone-enterprise
-- commands:
-  - mv bin/grabpl /tmp/
-  - rmdir bin
-  - mv grafana-enterprise /tmp/
-  - /tmp/grabpl init-enterprise --github-token $${GITHUB_TOKEN} /tmp/grafana-enterprise
-    ${DRONE_TAG}
-  - mv /tmp/grafana-enterprise/deployment_tools_config.json deployment_tools_config.json
-  - mkdir bin
-  - mv /tmp/grabpl bin/
-  - make gen-go
-  - ./bin/grabpl verify-version ${DRONE_TAG}
-  - ./bin/grabpl gen-version ${DRONE_TAG}
-  - yarn install --immutable
-  depends_on:
-  - clone-enterprise
-  environment:
-    GITHUB_TOKEN:
-      from_secret: github_token
-  image: grafana/build-container:1.4.8
-  name: initialize
-- commands:
-  - |-
-    echo -e "unknwon
-    referer
-    errorstring
-    eror
-    iam
-    wan" > words_to_ignore.txt
-  - codespell -I words_to_ignore.txt docs/
-  - rm words_to_ignore.txt
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: codespell
-- commands:
-  - ./bin/grabpl shellcheck
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: shellcheck
-- commands:
-  - ./bin/grabpl lint-backend --edition enterprise
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend
-- commands:
-  - yarn run prettier:check
-  - yarn run lint
-  - yarn run i18n:compile
-  - yarn run typecheck
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: lint-frontend
-- commands:
-  - ./bin/grabpl test-backend --edition enterprise
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend
-- commands:
-  - ./bin/grabpl integration-tests --edition enterprise
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration
-- commands:
-  - yarn run ci:test-frontend
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: test-frontend
-- commands:
-  - ./bin/grabpl lint-backend --edition enterprise2
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend-enterprise2
-- commands:
-  - ./bin/grabpl test-backend --edition enterprise2
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-enterprise2
-- commands:
-  - ./bin/grabpl integration-tests --edition enterprise2
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration-enterprise2
 trigger:
   ref:
   - refs/tags/v*
@@ -2111,6 +1965,152 @@ depends_on: []
 image_pull_secrets:
 - dockerconfigjson
 kind: pipeline
+name: enterprise-test-release
+node:
+  type: no-parallel
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - mkdir -p bin
+  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
+  - chmod +x bin/grabpl
+  image: byrnedo/alpine-curl:0.1.8
+  name: grabpl
+- commands:
+  - echo $DRONE_RUNNER_NAME
+  image: alpine:3.14.3
+  name: identify-runner
+- commands:
+  - git clone "https://$${GITHUB_TOKEN}@github.com/grafana/grafana-enterprise.git"
+  - cd grafana-enterprise
+  - git checkout ${DRONE_TAG}
+  environment:
+    GITHUB_TOKEN:
+      from_secret: github_token
+  image: grafana/build-container:1.4.8
+  name: clone-enterprise
+- commands:
+  - mv bin/grabpl /tmp/
+  - rmdir bin
+  - mv grafana-enterprise /tmp/
+  - /tmp/grabpl init-enterprise --github-token $${GITHUB_TOKEN} /tmp/grafana-enterprise
+    ${DRONE_TAG}
+  - mv /tmp/grafana-enterprise/deployment_tools_config.json deployment_tools_config.json
+  - mkdir bin
+  - mv /tmp/grabpl bin/
+  - make gen-go
+  - ./bin/grabpl verify-version ${DRONE_TAG}
+  - ./bin/grabpl gen-version ${DRONE_TAG}
+  - yarn install --immutable
+  depends_on:
+  - clone-enterprise
+  environment:
+    GITHUB_TOKEN:
+      from_secret: github_token
+  image: grafana/build-container:1.4.8
+  name: initialize
+- commands:
+  - |-
+    echo -e "unknwon
+    referer
+    errorstring
+    eror
+    iam
+    wan" > words_to_ignore.txt
+  - codespell -I words_to_ignore.txt docs/
+  - rm words_to_ignore.txt
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: codespell
+- commands:
+  - ./bin/grabpl shellcheck
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: shellcheck
+- commands:
+  - ./bin/grabpl lint-backend --edition enterprise
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend
+- commands:
+  - yarn run prettier:check
+  - yarn run lint
+  - yarn run i18n:compile
+  - yarn run typecheck
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: lint-frontend
+- commands:
+  - ./bin/grabpl test-backend --edition enterprise
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend
+- commands:
+  - ./bin/grabpl integration-tests --edition enterprise
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration
+- commands:
+  - yarn run ci:test-frontend
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: test-frontend
+- commands:
+  - ./bin/grabpl lint-backend --edition enterprise2
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend-enterprise2
+- commands:
+  - ./bin/grabpl test-backend --edition enterprise2
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-enterprise2
+- commands:
+  - ./bin/grabpl integration-tests --edition enterprise2
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration-enterprise2
+trigger:
+  ref:
+  - refs/tags/v*
+  repo:
+    exclude:
+    - grafana/grafana
+type: docker
+volumes:
+- name: cypress_cache
+  temp: {}
+- host:
+    path: /var/run/docker.sock
+  name: docker
+---
+clone:
+  disable: true
+depends_on: []
+image_pull_secrets:
+- dockerconfigjson
+kind: pipeline
 name: enterprise-integration-tests-release
 node:
   type: no-parallel
@@ -2255,8 +2255,8 @@ volumes:
 clone:
   disable: true
 depends_on:
-- enterprise-test-release
 - enterprise-build-e2e-publish-release
+- enterprise-test-release
 - enterprise-integration-tests-release
 image_pull_secrets:
 - dockerconfigjson
@@ -2327,103 +2327,6 @@ trigger:
   repo:
     exclude:
     - grafana/grafana
-type: docker
-volumes:
-- name: cypress_cache
-  temp: {}
-- host:
-    path: /var/run/docker.sock
-  name: docker
----
-depends_on: []
-kind: pipeline
-name: oss-test-test-release
-node:
-  type: no-parallel
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - mkdir -p bin
-  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
-  - chmod +x bin/grabpl
-  image: byrnedo/alpine-curl:0.1.8
-  name: grabpl
-- commands:
-  - echo $DRONE_RUNNER_NAME
-  image: alpine:3.14.3
-  name: identify-runner
-- commands:
-  - make gen-go
-  - ./bin/grabpl verify-version v7.3.0-test
-  - ./bin/grabpl gen-version v7.3.0-test
-  - yarn install --immutable
-  image: grafana/build-container:1.4.8
-  name: initialize
-- commands:
-  - |-
-    echo -e "unknwon
-    referer
-    errorstring
-    eror
-    iam
-    wan" > words_to_ignore.txt
-  - codespell -I words_to_ignore.txt docs/
-  - rm words_to_ignore.txt
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: codespell
-- commands:
-  - ./bin/grabpl shellcheck
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: shellcheck
-- commands:
-  - ./bin/grabpl lint-backend --edition oss
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend
-- commands:
-  - yarn run prettier:check
-  - yarn run lint
-  - yarn run i18n:compile
-  - yarn run typecheck
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: lint-frontend
-- commands:
-  - ./bin/grabpl test-backend --edition oss
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend
-- commands:
-  - ./bin/grabpl integration-tests --edition oss
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration
-- commands:
-  - yarn run ci:test-frontend
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: test-frontend
-trigger:
-  event:
-  - custom
 type: docker
 volumes:
 - name: cypress_cache
@@ -2699,6 +2602,103 @@ volumes:
 ---
 depends_on: []
 kind: pipeline
+name: oss-test-test-release
+node:
+  type: no-parallel
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - mkdir -p bin
+  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
+  - chmod +x bin/grabpl
+  image: byrnedo/alpine-curl:0.1.8
+  name: grabpl
+- commands:
+  - echo $DRONE_RUNNER_NAME
+  image: alpine:3.14.3
+  name: identify-runner
+- commands:
+  - make gen-go
+  - ./bin/grabpl verify-version v7.3.0-test
+  - ./bin/grabpl gen-version v7.3.0-test
+  - yarn install --immutable
+  image: grafana/build-container:1.4.8
+  name: initialize
+- commands:
+  - |-
+    echo -e "unknwon
+    referer
+    errorstring
+    eror
+    iam
+    wan" > words_to_ignore.txt
+  - codespell -I words_to_ignore.txt docs/
+  - rm words_to_ignore.txt
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: codespell
+- commands:
+  - ./bin/grabpl shellcheck
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: shellcheck
+- commands:
+  - ./bin/grabpl lint-backend --edition oss
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend
+- commands:
+  - yarn run prettier:check
+  - yarn run lint
+  - yarn run i18n:compile
+  - yarn run typecheck
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: lint-frontend
+- commands:
+  - ./bin/grabpl test-backend --edition oss
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend
+- commands:
+  - ./bin/grabpl integration-tests --edition oss
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration
+- commands:
+  - yarn run ci:test-frontend
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: test-frontend
+trigger:
+  event:
+  - custom
+type: docker
+volumes:
+- name: cypress_cache
+  temp: {}
+- host:
+    path: /var/run/docker.sock
+  name: docker
+---
+depends_on: []
+kind: pipeline
 name: oss-integration-tests-test-release
 node:
   type: no-parallel
@@ -2792,8 +2792,8 @@ volumes:
     medium: memory
 ---
 depends_on:
-- oss-test-test-release
 - oss-build-e2e-publish-test-release
+- oss-test-test-release
 - oss-integration-tests-test-release
 kind: pipeline
 name: oss-windows-test-release
@@ -2837,148 +2837,6 @@ steps:
       from_secret: prerelease_bucket
   image: grafana/ci-wix:0.1.1
   name: build-windows-installer
-trigger:
-  event:
-  - custom
-type: docker
-volumes:
-- name: cypress_cache
-  temp: {}
-- host:
-    path: /var/run/docker.sock
-  name: docker
----
-clone:
-  disable: true
-depends_on: []
-image_pull_secrets:
-- dockerconfigjson
-kind: pipeline
-name: enterprise-test-test-release
-node:
-  type: no-parallel
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - mkdir -p bin
-  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
-  - chmod +x bin/grabpl
-  image: byrnedo/alpine-curl:0.1.8
-  name: grabpl
-- commands:
-  - echo $DRONE_RUNNER_NAME
-  image: alpine:3.14.3
-  name: identify-runner
-- commands:
-  - git clone "https://$${GITHUB_TOKEN}@github.com/grafana/grafana-enterprise.git"
-  - cd grafana-enterprise
-  - git checkout main
-  environment:
-    GITHUB_TOKEN:
-      from_secret: github_token
-  image: grafana/build-container:1.4.8
-  name: clone-enterprise
-- commands:
-  - mv bin/grabpl /tmp/
-  - rmdir bin
-  - mv grafana-enterprise /tmp/
-  - /tmp/grabpl init-enterprise --github-token $${GITHUB_TOKEN} /tmp/grafana-enterprise
-  - mv /tmp/grafana-enterprise/deployment_tools_config.json deployment_tools_config.json
-  - mkdir bin
-  - mv /tmp/grabpl bin/
-  - make gen-go
-  - ./bin/grabpl verify-version v7.3.0-test
-  - ./bin/grabpl gen-version v7.3.0-test
-  - yarn install --immutable
-  depends_on:
-  - clone-enterprise
-  environment:
-    GITHUB_TOKEN:
-      from_secret: github_token
-  image: grafana/build-container:1.4.8
-  name: initialize
-- commands:
-  - |-
-    echo -e "unknwon
-    referer
-    errorstring
-    eror
-    iam
-    wan" > words_to_ignore.txt
-  - codespell -I words_to_ignore.txt docs/
-  - rm words_to_ignore.txt
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: codespell
-- commands:
-  - ./bin/grabpl shellcheck
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: shellcheck
-- commands:
-  - ./bin/grabpl lint-backend --edition enterprise
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend
-- commands:
-  - yarn run prettier:check
-  - yarn run lint
-  - yarn run i18n:compile
-  - yarn run typecheck
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: lint-frontend
-- commands:
-  - ./bin/grabpl test-backend --edition enterprise
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend
-- commands:
-  - ./bin/grabpl integration-tests --edition enterprise
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration
-- commands:
-  - yarn run ci:test-frontend
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: test-frontend
-- commands:
-  - ./bin/grabpl lint-backend --edition enterprise2
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend-enterprise2
-- commands:
-  - ./bin/grabpl test-backend --edition enterprise2
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-enterprise2
-- commands:
-  - ./bin/grabpl integration-tests --edition enterprise2
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration-enterprise2
 trigger:
   event:
   - custom
@@ -3316,6 +3174,148 @@ depends_on: []
 image_pull_secrets:
 - dockerconfigjson
 kind: pipeline
+name: enterprise-test-test-release
+node:
+  type: no-parallel
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - mkdir -p bin
+  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
+  - chmod +x bin/grabpl
+  image: byrnedo/alpine-curl:0.1.8
+  name: grabpl
+- commands:
+  - echo $DRONE_RUNNER_NAME
+  image: alpine:3.14.3
+  name: identify-runner
+- commands:
+  - git clone "https://$${GITHUB_TOKEN}@github.com/grafana/grafana-enterprise.git"
+  - cd grafana-enterprise
+  - git checkout main
+  environment:
+    GITHUB_TOKEN:
+      from_secret: github_token
+  image: grafana/build-container:1.4.8
+  name: clone-enterprise
+- commands:
+  - mv bin/grabpl /tmp/
+  - rmdir bin
+  - mv grafana-enterprise /tmp/
+  - /tmp/grabpl init-enterprise --github-token $${GITHUB_TOKEN} /tmp/grafana-enterprise
+  - mv /tmp/grafana-enterprise/deployment_tools_config.json deployment_tools_config.json
+  - mkdir bin
+  - mv /tmp/grabpl bin/
+  - make gen-go
+  - ./bin/grabpl verify-version v7.3.0-test
+  - ./bin/grabpl gen-version v7.3.0-test
+  - yarn install --immutable
+  depends_on:
+  - clone-enterprise
+  environment:
+    GITHUB_TOKEN:
+      from_secret: github_token
+  image: grafana/build-container:1.4.8
+  name: initialize
+- commands:
+  - |-
+    echo -e "unknwon
+    referer
+    errorstring
+    eror
+    iam
+    wan" > words_to_ignore.txt
+  - codespell -I words_to_ignore.txt docs/
+  - rm words_to_ignore.txt
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: codespell
+- commands:
+  - ./bin/grabpl shellcheck
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: shellcheck
+- commands:
+  - ./bin/grabpl lint-backend --edition enterprise
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend
+- commands:
+  - yarn run prettier:check
+  - yarn run lint
+  - yarn run i18n:compile
+  - yarn run typecheck
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: lint-frontend
+- commands:
+  - ./bin/grabpl test-backend --edition enterprise
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend
+- commands:
+  - ./bin/grabpl integration-tests --edition enterprise
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration
+- commands:
+  - yarn run ci:test-frontend
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: test-frontend
+- commands:
+  - ./bin/grabpl lint-backend --edition enterprise2
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend-enterprise2
+- commands:
+  - ./bin/grabpl test-backend --edition enterprise2
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-enterprise2
+- commands:
+  - ./bin/grabpl integration-tests --edition enterprise2
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration-enterprise2
+trigger:
+  event:
+  - custom
+type: docker
+volumes:
+- name: cypress_cache
+  temp: {}
+- host:
+    path: /var/run/docker.sock
+  name: docker
+---
+clone:
+  disable: true
+depends_on: []
+image_pull_secrets:
+- dockerconfigjson
+kind: pipeline
 name: enterprise-integration-tests-test-release
 node:
   type: no-parallel
@@ -3456,8 +3456,8 @@ volumes:
 clone:
   disable: true
 depends_on:
-- enterprise-test-test-release
 - enterprise-build-e2e-publish-test-release
+- enterprise-test-test-release
 - enterprise-integration-tests-test-release
 image_pull_secrets:
 - dockerconfigjson
@@ -3535,12 +3535,12 @@ volumes:
   name: docker
 ---
 depends_on:
-- oss-test-test-release
 - oss-build-e2e-publish-test-release
+- oss-test-test-release
 - oss-integration-tests-test-release
 - oss-windows-test-release
-- enterprise-test-test-release
 - enterprise-build-e2e-publish-test-release
+- enterprise-test-test-release
 - enterprise-integration-tests-test-release
 - enterprise-windows-test-release
 kind: pipeline
@@ -3621,12 +3621,12 @@ volumes:
   name: docker
 ---
 depends_on:
-- oss-test-test-release
 - oss-build-e2e-publish-test-release
+- oss-test-test-release
 - oss-integration-tests-test-release
 - oss-windows-test-release
-- enterprise-test-test-release
 - enterprise-build-e2e-publish-test-release
+- enterprise-test-test-release
 - enterprise-integration-tests-test-release
 - enterprise-windows-test-release
 - publish-test-release
@@ -3652,102 +3652,6 @@ trigger:
   status:
   - failure
 type: docker
----
-depends_on: []
-kind: pipeline
-name: oss-test-release-branch
-node:
-  type: no-parallel
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - mkdir -p bin
-  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
-  - chmod +x bin/grabpl
-  image: byrnedo/alpine-curl:0.1.8
-  name: grabpl
-- commands:
-  - echo $DRONE_RUNNER_NAME
-  image: alpine:3.14.3
-  name: identify-runner
-- commands:
-  - make gen-go
-  - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
-  - yarn install --immutable
-  image: grafana/build-container:1.4.8
-  name: initialize
-- commands:
-  - |-
-    echo -e "unknwon
-    referer
-    errorstring
-    eror
-    iam
-    wan" > words_to_ignore.txt
-  - codespell -I words_to_ignore.txt docs/
-  - rm words_to_ignore.txt
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: codespell
-- commands:
-  - ./bin/grabpl shellcheck
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: shellcheck
-- commands:
-  - ./bin/grabpl lint-backend --edition oss
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend
-- commands:
-  - yarn run prettier:check
-  - yarn run lint
-  - yarn run i18n:compile
-  - yarn run typecheck
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: lint-frontend
-- commands:
-  - ./bin/grabpl test-backend --edition oss
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend
-- commands:
-  - ./bin/grabpl integration-tests --edition oss
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration
-- commands:
-  - yarn run ci:test-frontend
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: test-frontend
-trigger:
-  ref:
-  - refs/heads/v[0-9]*
-type: docker
-volumes:
-- name: cypress_cache
-  temp: {}
-- host:
-    path: /var/run/docker.sock
-  name: docker
 ---
 depends_on: []
 kind: pipeline
@@ -3998,6 +3902,102 @@ volumes:
 ---
 depends_on: []
 kind: pipeline
+name: oss-test-release-branch
+node:
+  type: no-parallel
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - mkdir -p bin
+  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
+  - chmod +x bin/grabpl
+  image: byrnedo/alpine-curl:0.1.8
+  name: grabpl
+- commands:
+  - echo $DRONE_RUNNER_NAME
+  image: alpine:3.14.3
+  name: identify-runner
+- commands:
+  - make gen-go
+  - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
+  - yarn install --immutable
+  image: grafana/build-container:1.4.8
+  name: initialize
+- commands:
+  - |-
+    echo -e "unknwon
+    referer
+    errorstring
+    eror
+    iam
+    wan" > words_to_ignore.txt
+  - codespell -I words_to_ignore.txt docs/
+  - rm words_to_ignore.txt
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: codespell
+- commands:
+  - ./bin/grabpl shellcheck
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: shellcheck
+- commands:
+  - ./bin/grabpl lint-backend --edition oss
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend
+- commands:
+  - yarn run prettier:check
+  - yarn run lint
+  - yarn run i18n:compile
+  - yarn run typecheck
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: lint-frontend
+- commands:
+  - ./bin/grabpl test-backend --edition oss
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend
+- commands:
+  - ./bin/grabpl integration-tests --edition oss
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration
+- commands:
+  - yarn run ci:test-frontend
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: test-frontend
+trigger:
+  ref:
+  - refs/heads/v[0-9]*
+type: docker
+volumes:
+- name: cypress_cache
+  temp: {}
+- host:
+    path: /var/run/docker.sock
+  name: docker
+---
+depends_on: []
+kind: pipeline
 name: oss-integration-tests-release-branch
 node:
   type: no-parallel
@@ -4090,8 +4090,8 @@ volumes:
     medium: memory
 ---
 depends_on:
-- oss-test-release-branch
 - oss-build-e2e-publish-release-branch
+- oss-test-release-branch
 - oss-integration-tests-release-branch
 kind: pipeline
 name: oss-windows-release-branch
@@ -4130,147 +4130,6 @@ steps:
       from_secret: prerelease_bucket
   image: grafana/ci-wix:0.1.1
   name: build-windows-installer
-trigger:
-  ref:
-  - refs/heads/v[0-9]*
-type: docker
-volumes:
-- name: cypress_cache
-  temp: {}
-- host:
-    path: /var/run/docker.sock
-  name: docker
----
-clone:
-  disable: true
-depends_on: []
-image_pull_secrets:
-- dockerconfigjson
-kind: pipeline
-name: enterprise-test-release-branch
-node:
-  type: no-parallel
-platform:
-  arch: amd64
-  os: linux
-services: []
-steps:
-- commands:
-  - mkdir -p bin
-  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
-  - chmod +x bin/grabpl
-  image: byrnedo/alpine-curl:0.1.8
-  name: grabpl
-- commands:
-  - echo $DRONE_RUNNER_NAME
-  image: alpine:3.14.3
-  name: identify-runner
-- commands:
-  - git clone "https://$${GITHUB_TOKEN}@github.com/grafana/grafana-enterprise.git"
-  - cd grafana-enterprise
-  - git checkout ${DRONE_BRANCH}
-  environment:
-    GITHUB_TOKEN:
-      from_secret: github_token
-  image: grafana/build-container:1.4.8
-  name: clone-enterprise
-- commands:
-  - mv bin/grabpl /tmp/
-  - rmdir bin
-  - mv grafana-enterprise /tmp/
-  - /tmp/grabpl init-enterprise --github-token $${GITHUB_TOKEN} /tmp/grafana-enterprise
-  - mv /tmp/grafana-enterprise/deployment_tools_config.json deployment_tools_config.json
-  - mkdir bin
-  - mv /tmp/grabpl bin/
-  - make gen-go
-  - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
-  - yarn install --immutable
-  depends_on:
-  - clone-enterprise
-  environment:
-    GITHUB_TOKEN:
-      from_secret: github_token
-  image: grafana/build-container:1.4.8
-  name: initialize
-- commands:
-  - |-
-    echo -e "unknwon
-    referer
-    errorstring
-    eror
-    iam
-    wan" > words_to_ignore.txt
-  - codespell -I words_to_ignore.txt docs/
-  - rm words_to_ignore.txt
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: codespell
-- commands:
-  - ./bin/grabpl shellcheck
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: shellcheck
-- commands:
-  - ./bin/grabpl lint-backend --edition enterprise
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend
-- commands:
-  - yarn run prettier:check
-  - yarn run lint
-  - yarn run i18n:compile
-  - yarn run typecheck
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: lint-frontend
-- commands:
-  - ./bin/grabpl test-backend --edition enterprise
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend
-- commands:
-  - ./bin/grabpl integration-tests --edition enterprise
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration
-- commands:
-  - yarn run ci:test-frontend
-  depends_on:
-  - initialize
-  environment:
-    TEST_MAX_WORKERS: 50%
-  image: grafana/build-container:1.4.8
-  name: test-frontend
-- commands:
-  - ./bin/grabpl lint-backend --edition enterprise2
-  depends_on:
-  - initialize
-  environment:
-    CGO_ENABLED: "1"
-  image: grafana/build-container:1.4.8
-  name: lint-backend-enterprise2
-- commands:
-  - ./bin/grabpl test-backend --edition enterprise2
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-enterprise2
-- commands:
-  - ./bin/grabpl integration-tests --edition enterprise2
-  depends_on:
-  - initialize
-  image: grafana/build-container:1.4.8
-  name: test-backend-integration-enterprise2
 trigger:
   ref:
   - refs/heads/v[0-9]*
@@ -4612,6 +4471,147 @@ depends_on: []
 image_pull_secrets:
 - dockerconfigjson
 kind: pipeline
+name: enterprise-test-release-branch
+node:
+  type: no-parallel
+platform:
+  arch: amd64
+  os: linux
+services: []
+steps:
+- commands:
+  - mkdir -p bin
+  - curl -fL -o bin/grabpl https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v2.7.8/grabpl
+  - chmod +x bin/grabpl
+  image: byrnedo/alpine-curl:0.1.8
+  name: grabpl
+- commands:
+  - echo $DRONE_RUNNER_NAME
+  image: alpine:3.14.3
+  name: identify-runner
+- commands:
+  - git clone "https://$${GITHUB_TOKEN}@github.com/grafana/grafana-enterprise.git"
+  - cd grafana-enterprise
+  - git checkout ${DRONE_BRANCH}
+  environment:
+    GITHUB_TOKEN:
+      from_secret: github_token
+  image: grafana/build-container:1.4.8
+  name: clone-enterprise
+- commands:
+  - mv bin/grabpl /tmp/
+  - rmdir bin
+  - mv grafana-enterprise /tmp/
+  - /tmp/grabpl init-enterprise --github-token $${GITHUB_TOKEN} /tmp/grafana-enterprise
+  - mv /tmp/grafana-enterprise/deployment_tools_config.json deployment_tools_config.json
+  - mkdir bin
+  - mv /tmp/grabpl bin/
+  - make gen-go
+  - ./bin/grabpl gen-version --build-id ${DRONE_BUILD_NUMBER}
+  - yarn install --immutable
+  depends_on:
+  - clone-enterprise
+  environment:
+    GITHUB_TOKEN:
+      from_secret: github_token
+  image: grafana/build-container:1.4.8
+  name: initialize
+- commands:
+  - |-
+    echo -e "unknwon
+    referer
+    errorstring
+    eror
+    iam
+    wan" > words_to_ignore.txt
+  - codespell -I words_to_ignore.txt docs/
+  - rm words_to_ignore.txt
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: codespell
+- commands:
+  - ./bin/grabpl shellcheck
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: shellcheck
+- commands:
+  - ./bin/grabpl lint-backend --edition enterprise
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend
+- commands:
+  - yarn run prettier:check
+  - yarn run lint
+  - yarn run i18n:compile
+  - yarn run typecheck
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: lint-frontend
+- commands:
+  - ./bin/grabpl test-backend --edition enterprise
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend
+- commands:
+  - ./bin/grabpl integration-tests --edition enterprise
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration
+- commands:
+  - yarn run ci:test-frontend
+  depends_on:
+  - initialize
+  environment:
+    TEST_MAX_WORKERS: 50%
+  image: grafana/build-container:1.4.8
+  name: test-frontend
+- commands:
+  - ./bin/grabpl lint-backend --edition enterprise2
+  depends_on:
+  - initialize
+  environment:
+    CGO_ENABLED: "1"
+  image: grafana/build-container:1.4.8
+  name: lint-backend-enterprise2
+- commands:
+  - ./bin/grabpl test-backend --edition enterprise2
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-enterprise2
+- commands:
+  - ./bin/grabpl integration-tests --edition enterprise2
+  depends_on:
+  - initialize
+  image: grafana/build-container:1.4.8
+  name: test-backend-integration-enterprise2
+trigger:
+  ref:
+  - refs/heads/v[0-9]*
+type: docker
+volumes:
+- name: cypress_cache
+  temp: {}
+- host:
+    path: /var/run/docker.sock
+  name: docker
+---
+clone:
+  disable: true
+depends_on: []
+image_pull_secrets:
+- dockerconfigjson
+kind: pipeline
 name: enterprise-integration-tests-release-branch
 node:
   type: no-parallel
@@ -4751,8 +4751,8 @@ volumes:
 clone:
   disable: true
 depends_on:
-- enterprise-test-release-branch
 - enterprise-build-e2e-publish-release-branch
+- enterprise-test-release-branch
 - enterprise-integration-tests-release-branch
 image_pull_secrets:
 - dockerconfigjson
@@ -4963,6 +4963,6 @@ kind: secret
 name: prerelease_bucket
 ---
 kind: signature
-hmac: 3568ecb4b647857631623990951a3f1c2e3b03f31313e636e8bd03db388a1fc7
+hmac: e1a886fde202be23ff4c28fad9e2025dd45f0bcf4b10b08c6436474b5fd3c4b9
 
 ...
