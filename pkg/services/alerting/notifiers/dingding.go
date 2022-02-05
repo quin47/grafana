@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/models"
@@ -154,5 +155,21 @@ func (dd *DingDingNotifier) genBody(evalContext *alerting.EvalContext, messageUR
 			"link":    link,
 		}
 	}
+	ruleTags := evalContext.Rule.AlertRuleTags
+	if ruleTags != nil && len(ruleTags) > 0 {
+		for _, tag := range ruleTags {
+			if tag.Key == "isAtAll" && "true" == tag.Value {
+				bodyMsg["isAtAll"] = true
+			}
+			if tag.Key == "atDingtalkIds" && len(tag.Value) > 0 {
+				bodyMsg["atDingtalkIds"] = strings.Split(tag.Value, ",")
+			}
+			if tag.Key == "atMobiles" && len(tag.Value) > 0 {
+				bodyMsg["atMobiles"] = strings.Split(tag.Value, ",")
+			}
+		}
+
+	}
+
 	return json.Marshal(bodyMsg)
 }

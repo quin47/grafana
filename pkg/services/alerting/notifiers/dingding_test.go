@@ -51,8 +51,74 @@ func TestDingDingNotifier(t *testing.T) {
 					State:   models.AlertStateAlerting,
 					Message: `{host="localhost"}`,
 				}, &validations.OSSPluginRequestValidator{}, nil)
-			_, err = notifier.genBody(evalContext, "")
+			body, err := notifier.genBody(evalContext, "")
 			require.Nil(t, err)
+			require.NotContains(t, string(body), "isAtAll")
+
+		})
+	})
+
+	t.Run("settings should trigger atAll incident", func(t *testing.T) {
+		json := `{ "url": "https://oapi.dingtalk.com/robot/send?access_token=9a301fb9dcfdf16258356e8e149d0ce6b93318eabc97c1b2c09f280355dddea8" }`
+
+		settingsJSON, _ := simplejson.NewJson([]byte(json))
+		model := &models.AlertNotification{
+			Name:     "dingding_testing",
+			Type:     "dingding",
+			Settings: settingsJSON,
+		}
+
+		not, err := newDingDingNotifier(model, ossencryption.ProvideService().GetDecryptedValue, nil)
+		notifier := not.(*DingDingNotifier)
+
+		require.Nil(t, err)
+
+		t.Run("genBody should not panic", func(t *testing.T) {
+			var ruleTags []*models.Tag
+			ruleTags = append(ruleTags, &models.Tag{Key: "isAtAll", Value: "true"})
+			evalContext := alerting.NewEvalContext(context.Background(),
+				&alerting.Rule{
+					State:         models.AlertStateAlerting,
+					Message:       `{host="localhost","content":"alert"}`,
+					AlertRuleTags: ruleTags,
+				}, &validations.OSSPluginRequestValidator{}, nil)
+			body, err := notifier.genBody(evalContext, "")
+
+			require.Nil(t, err)
+			require.Contains(t, string(body), "isAtAll")
+		})
+	})
+	t.Run("settings should trigger atAll incident", func(t *testing.T) {
+		json := `{ "url": "https://www.google.com" }`
+
+		settingsJSON, _ := simplejson.NewJson([]byte(json))
+		model := &models.AlertNotification{
+			Name:     "dingding_testing",
+			Type:     "dingding",
+			Settings: settingsJSON,
+		}
+
+		not, err := newDingDingNotifier(model, ossencryption.ProvideService().GetDecryptedValue, nil)
+		notifier := not.(*DingDingNotifier)
+
+		require.Nil(t, err)
+
+		t.Run("genBody should not panic", func(t *testing.T) {
+			var ruleTags []*models.Tag
+			ruleTags = append(ruleTags, &models.Tag{Key: "atMobiles", Value: "12222222,22232112"})
+
+			evalContext := alerting.NewEvalContext(context.Background(),
+				&alerting.Rule{
+					State:         models.AlertStateAlerting,
+					Message:       `{host="localhost","content":"alert"}`,
+					AlertRuleTags: ruleTags,
+				}, &validations.OSSPluginRequestValidator{}, nil)
+			body, err := notifier.genBody(evalContext, "")
+			require.Nil(t, err)
+			require.Contains(t, string(body), "atMobiles")
+			require.Contains(t, string(body), "12222222")
+			require.Contains(t, string(body), "22232112")
+
 		})
 	})
 }
