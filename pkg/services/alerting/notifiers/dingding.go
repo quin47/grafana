@@ -156,9 +156,9 @@ func (dd *DingDingNotifier) genBody(evalContext *alerting.EvalContext, messageUR
 		}
 	}
 	ruleTags := evalContext.Rule.AlertRuleTags
-	if ruleTags != nil && len(ruleTags) > 0 {
+	if len(ruleTags) > 0 {
 		for _, tag := range ruleTags {
-			if tag.Key == "isAtAll" && "true" == tag.Value {
+			if tag.Key == "isAtAll" && tag.Value == "true" {
 				bodyMsg["isAtAll"] = true
 			}
 			if tag.Key == "atDingtalkIds" && len(tag.Value) > 0 {
@@ -168,7 +168,6 @@ func (dd *DingDingNotifier) genBody(evalContext *alerting.EvalContext, messageUR
 				bodyMsg["atMobiles"] = strings.Split(tag.Value, ",")
 			}
 		}
-
 	}
 
 	return json.Marshal(bodyMsg)

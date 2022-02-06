@@ -54,7 +54,6 @@ func TestDingDingNotifier(t *testing.T) {
 			body, err := notifier.genBody(evalContext, "")
 			require.Nil(t, err)
 			require.NotContains(t, string(body), "isAtAll")
-
 		})
 	})
 
@@ -118,7 +117,6 @@ func TestDingDingNotifier(t *testing.T) {
 			require.Contains(t, string(body), "atMobiles")
 			require.Contains(t, string(body), "12222222")
 			require.Contains(t, string(body), "22232112")
-
 		})
 	})
 }
