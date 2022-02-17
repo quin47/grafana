@@ -34,6 +34,11 @@ var (
 			State:       FeatureStateAlpha,
 		},
 		{
+			Name:        "dashboardPreviewsScheduler",
+			Description: "Schedule automatic updates to dashboard previews",
+			State:       FeatureStateAlpha,
+		},
+		{
 			Name:        "live-config",
 			Description: "Save grafana live configuration in SQL tables",
 			State:       FeatureStateAlpha,
@@ -56,6 +61,12 @@ var (
 			FrontendOnly: true,
 		},
 		{
+			Name:            "panelTitleSearch",
+			Description:     "Search for dashboards using panel title",
+			State:           FeatureStateAlpha,
+			RequiresDevMode: true, // only supported in dev mode right now
+		},
+		{
 			Name:         "tempoSearch",
 			Description:  "Enable searching in tempo datasources",
 			State:        FeatureStateBeta,
@@ -73,9 +84,9 @@ var (
 			FrontendOnly: true,
 		},
 		{
-			Name:         "fullRangeLogsVolume",
-			Description:  "Show full range logs volume in explore",
-			State:        FeatureStateBeta,
+			Name:         "lokiBackendMode",
+			Description:  "Loki datasource works as backend datasource",
+			State:        FeatureStateAlpha,
 			FrontendOnly: true,
 		},
 		{
@@ -87,6 +98,12 @@ var (
 			Name:        "prometheus_azure_auth",
 			Description: "Use azure authentication for prometheus datasource",
 			State:       FeatureStateBeta,
+		},
+		{
+			Name:         "influxdbBackendMigration",
+			Description:  "Query InfluxDB InfluxQL without the proxy",
+			State:        FeatureStateAlpha,
+			FrontendOnly: true,
 		},
 		{
 			Name:        "newNavigation",
@@ -111,9 +128,19 @@ var (
 			RequiresDevMode: true,
 		},
 		{
+			Name:        "swaggerUi",
+			Description: "Serves swagger UI",
+			State:       FeatureStateBeta,
+		},
+		{
 			Name:        "featureHighlights",
 			Description: "Highlight Enterprise features",
 			State:       FeatureStateStable,
+		},
+		{
+			Name:        "migrationLocking",
+			Description: "Lock database during migrations",
+			State:       FeatureStateBeta,
 		},
 	}
 )
