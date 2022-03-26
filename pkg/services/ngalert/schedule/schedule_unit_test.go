@@ -17,13 +17,11 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 
 	"github.com/grafana/grafana/pkg/expr"
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/services/annotations"
-	apimodels "github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
 	"github.com/grafana/grafana/pkg/services/ngalert/metrics"
 	"github.com/grafana/grafana/pkg/services/ngalert/models"
@@ -362,7 +360,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 	for _, evalState := range normalStates {
 		// TODO rewrite when we are able to mock/fake state manager
 		t.Run(fmt.Sprintf("when rule evaluation happens (evaluation state %s)", evalState), func(t *testing.T) {
-			evalChan := make(chan *evalContext)
+			evalChan := make(chan *evaluation)
 			evalAppliedChan := make(chan time.Time)
 			sch, ruleStore, instanceStore, _, reg := createSchedule(evalAppliedChan)
 
@@ -376,9 +374,9 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 
 			expectedTime := time.UnixMicro(rand.Int63())
 
-			evalChan <- &evalContext{
-				now:     expectedTime,
-				version: rule.Version,
+			evalChan <- &evaluation{
+				scheduledAt: expectedTime,
+				version:     rule.Version,
 			}
 
 			actualTime := waitForTimeChannel(t, evalAppliedChan)
@@ -468,7 +466,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 			go func() {
-				err := sch.ruleRoutine(ctx, models.AlertRuleKey{}, make(chan *evalContext), make(chan struct{}))
+				err := sch.ruleRoutine(ctx, models.AlertRuleKey{}, make(chan *evaluation), make(chan struct{}))
 				stoppedChan <- err
 			}()
 
@@ -479,7 +477,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 	})
 
 	t.Run("should fetch rule from database only if new version is greater than current", func(t *testing.T) {
-		evalChan := make(chan *evalContext)
+		evalChan := make(chan *evaluation)
 		evalAppliedChan := make(chan time.Time)
 
 		ctx := context.Background()
@@ -494,9 +492,9 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 		}()
 
 		expectedTime := time.UnixMicro(rand.Int63())
-		evalChan <- &evalContext{
-			now:     expectedTime,
-			version: rule.Version,
+		evalChan <- &evaluation{
+			scheduledAt: expectedTime,
+			version:     rule.Version,
 		}
 
 		actualTime := waitForTimeChannel(t, evalAppliedChan)
@@ -509,9 +507,9 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 
 		// and call with new version
 		expectedTime = expectedTime.Add(time.Duration(rand.Intn(10)) * time.Second)
-		evalChan <- &evalContext{
-			now:     expectedTime,
-			version: newRule.Version,
+		evalChan <- &evaluation{
+			scheduledAt: expectedTime,
+			version:     newRule.Version,
 		}
 
 		actualTime = waitForTimeChannel(t, evalAppliedChan)
@@ -532,7 +530,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 	})
 
 	t.Run("should not fetch rule if version is equal or less than current", func(t *testing.T) {
-		evalChan := make(chan *evalContext)
+		evalChan := make(chan *evaluation)
 		evalAppliedChan := make(chan time.Time)
 
 		sch, ruleStore, _, _, _ := createSchedule(evalAppliedChan)
@@ -546,9 +544,9 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 		}()
 
 		expectedTime := time.UnixMicro(rand.Int63())
-		evalChan <- &evalContext{
-			now:     expectedTime,
-			version: rule.Version,
+		evalChan <- &evaluation{
+			scheduledAt: expectedTime,
+			version:     rule.Version,
 		}
 
 		actualTime := waitForTimeChannel(t, evalAppliedChan)
@@ -556,17 +554,17 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 
 		// try again with the same version
 		expectedTime = expectedTime.Add(time.Duration(rand.Intn(10)) * time.Second)
-		evalChan <- &evalContext{
-			now:     expectedTime,
-			version: rule.Version,
+		evalChan <- &evaluation{
+			scheduledAt: expectedTime,
+			version:     rule.Version,
 		}
 		actualTime = waitForTimeChannel(t, evalAppliedChan)
 		require.Equal(t, expectedTime, actualTime)
 
 		expectedTime = expectedTime.Add(time.Duration(rand.Intn(10)) * time.Second)
-		evalChan <- &evalContext{
-			now:     expectedTime,
-			version: rule.Version - 1,
+		evalChan <- &evaluation{
+			scheduledAt: expectedTime,
+			version:     rule.Version - 1,
 		}
 		actualTime = waitForTimeChannel(t, evalAppliedChan)
 		require.Equal(t, expectedTime, actualTime)
@@ -583,7 +581,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 
 	t.Run("when update channel is not empty", func(t *testing.T) {
 		t.Run("should fetch the alert rule from database", func(t *testing.T) {
-			evalChan := make(chan *evalContext)
+			evalChan := make(chan *evaluation)
 			evalAppliedChan := make(chan time.Time)
 			updateChan := make(chan struct{})
 
@@ -613,9 +611,9 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 			require.Equal(t, rule.OrgID, m.OrgID)
 
 			// now call evaluation loop to make sure that the rule was persisted
-			evalChan <- &evalContext{
-				now:     time.UnixMicro(rand.Int63()),
-				version: rule.Version,
+			evalChan <- &evaluation{
+				scheduledAt: time.UnixMicro(rand.Int63()),
+				version:     rule.Version,
 			}
 			waitForTimeChannel(t, evalAppliedChan)
 
@@ -638,7 +636,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 			go func() {
 				ctx, cancel := context.WithCancel(context.Background())
 				t.Cleanup(cancel)
-				_ = sch.ruleRoutine(ctx, rule.GetKey(), make(chan *evalContext), updateChan)
+				_ = sch.ruleRoutine(ctx, rule.GetKey(), make(chan *evaluation), updateChan)
 			}()
 
 			ruleStore.Hook = func(cmd interface{}) error {
@@ -678,7 +676,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 				return len(s.Alertmanagers()) == 1
 			}, 20*time.Second, 200*time.Millisecond, "external Alertmanager was not discovered.")
 
-			evalChan := make(chan *evalContext)
+			evalChan := make(chan *evaluation)
 			evalAppliedChan := make(chan time.Time)
 			updateChan := make(chan struct{})
 
@@ -784,7 +782,7 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 				return len(s.Alertmanagers()) == 1
 			}, 20*time.Second, 200*time.Millisecond, "external Alertmanager was not discovered.")
 
-			evalChan := make(chan *evalContext)
+			evalChan := make(chan *evaluation)
 			evalAppliedChan := make(chan time.Time)
 
 			sch, ruleStore, _, _, _ := createSchedule(evalAppliedChan)
@@ -798,9 +796,9 @@ func TestSchedule_ruleRoutine(t *testing.T) {
 				_ = sch.ruleRoutine(ctx, rule.GetKey(), evalChan, make(chan struct{}))
 			}()
 
-			evalChan <- &evalContext{
-				now:     time.Now(),
-				version: rule.Version,
+			evalChan <- &evaluation{
+				scheduledAt: time.Now(),
+				version:     rule.Version,
 			}
 			waitForTimeChannel(t, evalAppliedChan)
 
@@ -844,7 +842,7 @@ func TestSchedule_alertRuleInfo(t *testing.T) {
 			select {
 			case ctx := <-r.evalCh:
 				require.Equal(t, version, ctx.version)
-				require.Equal(t, expected, ctx.now)
+				require.Equal(t, expected, ctx.scheduledAt)
 				require.True(t, <-resultCh)
 			case <-time.After(5 * time.Second):
 				t.Fatal("No message was received on eval channel")
@@ -1084,49 +1082,37 @@ func CreateTestAlertRule(t *testing.T, dbstore *store.FakeRuleStore, intervalSec
 		require.Fail(t, "Alert rule with desired evaluation result NoData is not supported yet")
 	}
 
-	err := dbstore.UpdateRuleGroup(ctx, store.UpdateRuleGroupCmd{
-		OrgID:        orgID,
-		NamespaceUID: "namespace",
-		RuleGroupConfig: apimodels.PostableRuleGroupConfig{
-			Name:     ruleGroup,
-			Interval: model.Duration(time.Duration(intervalSeconds) * time.Second),
-			Rules: []apimodels.PostableExtendedRuleNode{
-				{
-					ApiRuleNode: &apimodels.ApiRuleNode{
-						Annotations: map[string]string{"testAnnoKey": "testAnnoValue"},
-						For:         model.Duration(forDuration),
-					},
-					GrafanaManagedAlert: &apimodels.PostableGrafanaRule{
-						Title:     fmt.Sprintf("an alert definition %d", d),
-						Condition: "A",
-						Data: []models.AlertQuery{
-							{
-								DatasourceUID: "-100",
-								Model:         json.RawMessage(expression),
-								RelativeTimeRange: models.RelativeTimeRange{
-									From: models.Duration(5 * time.Hour),
-									To:   models.Duration(3 * time.Hour),
-								},
-								RefID: "A",
-							},
-						},
-					},
+	rule := &models.AlertRule{
+		ID:        1,
+		OrgID:     orgID,
+		Title:     fmt.Sprintf("an alert definition %d", d),
+		Condition: "A",
+		Data: []models.AlertQuery{
+			{
+				DatasourceUID: "-100",
+				Model:         json.RawMessage(expression),
+				RelativeTimeRange: models.RelativeTimeRange{
+					From: models.Duration(5 * time.Hour),
+					To:   models.Duration(3 * time.Hour),
 				},
+				RefID: "A",
 			},
 		},
-	})
-	require.NoError(t, err)
-
-	q := models.ListRuleGroupAlertRulesQuery{
-		OrgID:        orgID,
-		NamespaceUID: "namespace",
-		RuleGroup:    ruleGroup,
+		Updated:         time.Now(),
+		IntervalSeconds: intervalSeconds,
+		Version:         1,
+		UID:             util.GenerateShortUID(),
+		NamespaceUID:    "namespace",
+		RuleGroup:       ruleGroup,
+		NoDataState:     models.NoData,
+		ExecErrState:    models.AlertingErrState,
+		For:             forDuration,
+		Annotations:     map[string]string{"testAnnoKey": "testAnnoValue"},
+		Labels:          nil,
 	}
-	err = dbstore.GetRuleGroupAlertRules(ctx, &q)
-	require.NoError(t, err)
-	require.NotEmpty(t, q.Result)
 
-	rule := q.Result[0]
+	dbstore.PutRule(ctx, rule)
+
 	t.Logf("alert definition: %v with interval: %d created", rule.GetKey(), rule.IntervalSeconds)
 	return rule
 }

@@ -133,6 +133,11 @@ var (
 			RequiresDevMode: true,
 		},
 		{
+			Name:        "lokiLive",
+			Description: "support websocket streaming for loki (early prototype)",
+			State:       FeatureStateAlpha,
+		},
+		{
 			Name:        "swaggerUi",
 			Description: "Serves swagger UI",
 			State:       FeatureStateBeta,
@@ -143,9 +148,37 @@ var (
 			State:       FeatureStateStable,
 		},
 		{
+			Name:        "dashboardComments",
+			Description: "Enable dashboard-wide comments",
+			State:       FeatureStateAlpha,
+		},
+		{
+			Name:        "annotationComments",
+			Description: "Enable annotation comments",
+			State:       FeatureStateAlpha,
+		},
+		{
 			Name:        "migrationLocking",
 			Description: "Lock database during migrations",
 			State:       FeatureStateBeta,
+		},
+		{
+			Name:        "storage",
+			Description: "Configurable storage for dashboards, datasources, and resources",
+			State:       FeatureStateAlpha,
+		},
+		{
+			Name:            "storageLocalUpload",
+			Description:     "allow uploads to local storage",
+			State:           FeatureStateAlpha,
+			RequiresDevMode: true,
+		},
+		{
+			Name:            "azureMonitorResourcePickerForMetrics",
+			Description:     "New UI for Azure Monitor Metrics Query",
+			State:           FeatureStateAlpha,
+			RequiresDevMode: true,
+			FrontendOnly:    true,
 		},
 	}
 )

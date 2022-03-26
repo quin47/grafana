@@ -164,9 +164,10 @@ func TestAccountDataAccess(t *testing.T) {
 
 			t.Run("Can search users", func(t *testing.T) {
 				query := models.SearchUsersQuery{Query: ""}
-				err := SearchUsers(context.Background(), &query)
+				err := sqlStore.SearchUsers(context.Background(), &query)
 
 				require.NoError(t, err)
+				require.Len(t, query.Result.Users, 2)
 				require.Equal(t, query.Result.Users[0].Email, "ac1@test.com")
 				require.Equal(t, query.Result.Users[1].Email, "ac2@test.com")
 			})
